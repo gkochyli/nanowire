@@ -27,7 +27,7 @@ constexpr double Ly = L*ay/2;
 ofstream print_1("1st_layer.txt"), print_2("2nd_layer.txt"), print_3("3rd_layer.txt");
 ofstream print_energy("energy_3rd_layer");
 
-vector<Particle> substrate(3*L*L);
+vector<Particle> substrate(4*L*L,0);					
 
 mt19937_64 gen(13518);
 uniform_real_distribution<> random_phi(0.0, 2*PI);
@@ -37,6 +37,7 @@ uniform_real_distribution<> rn(0.0, 1.0);
 int main()
 {
 	vector<int> movable_substrate(L*L,0);					// periexei ta kinoumena swmatia tou 3ou layer.
+	vector<int> movable_nanowire(3*L,0);					// periexei ta kinoumena swmatia tou nanowire
 	vector< unordered_set<int> > neighborhood(N*N);			// periexei set apo indeces pou vriskontai sthn idia "geitonia"
 //----------------------------------------------------> Substrate Formation
 	
