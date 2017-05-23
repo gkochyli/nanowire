@@ -14,8 +14,8 @@ pigment {
 
 
 camera {
-   location <110,8,-8>
-   look_at <50,0,50>
+   location <120,15,-15>
+   look_at <50,-10,50>
    // angle 10 // direction <0, 0,  1.7>
    //right x*image_width/image_height
    //look_at <20,0.5,2>
@@ -25,9 +25,10 @@ camera {
 
 background{ color rgb <0,0,0> }
 
-//light_source {< 150, 10, -50> White }
-light_source {< 150, 10, 30> White }
-//#declare vecCupos = <0.0,0.0,0.0>;
+light_source {< 150, 150, -30> White}
+//light_source {< 150, 10, 30> White }
+
+
 #fopen sub1 "1_2layer.txt" read
 #while (defined(sub1))
     #declare vecCupos = <0.0,0.0,0.0>;
@@ -68,4 +69,4 @@ light_source {< 150, 10, 30> White }
 			}
 		}
 #end
-#fclose nano
+#fclose nano	
