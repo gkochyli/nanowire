@@ -14,6 +14,7 @@ void find_set_coordinates(int&, int&, Particle);
 void PBC(Particle&);
 double calculate_energy(int, Particle, vector<int>, vector< unordered_set<int> > &);
 bool check_Boltzmann(double);
+void place_nanowire(vector<Particle> &nanowire, vector<int> &movable_particles);
 
 constexpr int L=100;					//linear dimension of lattice
 constexpr int N=L/10;					//linear dimension of neighbors' vector.
@@ -24,10 +25,16 @@ constexpr double ax=2*R, ay=2*sqrt(3)*R, az=2*sqrt(2.0/3)*2*R;	// distance betwe
 constexpr double Lx = L*ax;
 constexpr double Ly = L*ay/2;
 
-ofstream print_1("1st_layer.txt"), print_2("2nd_layer.txt"), print_3("3rd_layer.txt");
+// Sta8eres gia Pb-nanowire
+constexpr double R_pb = 0.66;
+constexpr double ax_pb = 2*R_pb;
+constexpr int num_of_pb = 68; 		//number of Pb particles
+
+ofstream print_1("1st_layer.txt"), print_2("2nd_layer.txt"), print_3("3rd_layer.txt"), print_nanowire("./pov/nanowire_coordinates.txt");
 ofstream print_energy("energy_3rd_layer");
 
-vector<Particle> substrate(4*L*L,0);					
+vector<Particle> substrate(3*L*L);					
+vector<Particle> nanowire(num_of_pb);
 
 mt19937_64 gen(13518);
 uniform_real_distribution<> random_phi(0.0, 2*PI);
@@ -36,8 +43,7 @@ uniform_real_distribution<> rn(0.0, 1.0);
 
 int main()
 {
-	vector<int> movable_substrate(L*L,0);					// periexei ta kinoumena swmatia tou 3ou layer.
-	vector<int> movable_nanowire(3*L,0);					// periexei ta kinoumena swmatia tou nanowire
+	vector<int> movable_particles(L*L + num_of_pb,0);				// periexei ta kinoumena swmatia tou 3ou layer. 68 einai ta swmatidia tou nanowire 2* 0.66*68
 	vector< unordered_set<int> > neighborhood(N*N);			// periexei set apo indeces pou vriskontai sthn idia "geitonia"
 //----------------------------------------------------> Substrate Formation
 	
@@ -69,7 +75,7 @@ int main()
 		print_3 << '<' << substrate[i+2*L*L].x << ',' << substrate[i+2*L*L].z << ',' << substrate[i+2*L*L].y <<'>'<<endl;
 //---------------------------------------------------->
 		
-		movable_substrate[i] = i+2*L*L;					// contains indeces of the 3rd layer. thats the moving substrate.
+		movable_particles[i] = i+2*L*L;					// contains indeces of the 3rd layer. thats the moving substrate.
 		
 		int x_set, y_set;
 		find_set_coordinates(x_set, y_set, substrate[i]);
@@ -82,14 +88,17 @@ int main()
 		neighborhood[y_set*N + x_set].insert(i+L*L);
 		neighborhood[y_set*N + x_set].insert(i+2*L*L);
 	}
+	
+	place_nanowire(nanowire, movable_particles);
 //-----------------------------------------------------> Calcuting Distance of two atoms, for every close neighboring atom
-	//vector<double> 
-	//for(int r=0; r<10; r++)
-	//{
-		for(int p=0; p<10; p++)//movable_substrate.size(); p++)		// Gia ka8e swmatio tou kinoumenou substrate
+	
+	
+	/*
+	
+		for(int p=0; p<10; p++)//movable_particles.size(); p++)		// Gia ka8e swmatio tou kinoumenou substrate
 		{			
 			cout << p << ')' << endl;
-			int i = movable_substrate[p];					// i = label tou sugkekrimenou swmatidiou pou tsekarw
+			int i = movable_particles[p];					// i = label tou sugkekrimenou swmatidiou pou tsekarw
 
 	//		cout << "Trexon Swmatidio: " << i << endl<<endl;
 	//		cout << "Syntetagmnenes Trexontos Swmatidiou\t" << x_i << '\t' << y_i << '\t' << z_i << endl<<endl;
@@ -151,6 +160,9 @@ int main()
 			}
 			cout << "-------------------------------------------------------------------" << endl;		
 		}
+		
+		
+		*/
 	
 }
 
@@ -252,4 +264,23 @@ bool check_Boltzmann(double dE)
 		return true;
 	}
 	else return false;
+}
+//-----------------------------------------------------------
+void place_nanowire(vector<Particle>& nanowire, vector<int>& movable_particles)
+{
+	for(int i=0; i<num_of_pb; i++)
+	{
+		nanowire[i].x = i*ax_pb + 10.0;		// 3ekinaei apto x = 10
+		nanowire[i].y = 5*ay/2 + 4*Ly/10;			//topo8etw to nanowire sthn pempth seira tou 4 set
+		nanowire[i].z = az + R + R_pb;		//topo8etw to nanowire se uyos mia aktinas Cu kai mias aktinas Pb
+		
+		movable_particles[L*L+i] = 3*L*L+i;	//ta swmatidia tou nanowire 8a exoun labels 30000, 30001, 30002, ..., 30067 
+		
+		print_nanowire << '<' << nanowire[i].x << ',' << nanowire[i].z << ',' << nanowire[i].y <<">,"<<endl;
+		
+		int x_set, y_set;
+		find_set_coordinates(x_set, y_set, nanowire[i]);
+		nanowire[i].set = y_set*N + x_set;
+		cout << nanowire[i].set << endl;
+	}
 }
