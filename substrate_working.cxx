@@ -1,11 +1,12 @@
 #include <iostream>
 #include <vector>
-#include "particle.h"
 #include <cmath>
 #include <unordered_set>
 #include <iomanip>
 #include <fstream>
 #include <random>
+#include "point3D.h"
+#include "particle.h"
 using namespace std;
 
 void find_closest_neighbors(vector<int> &, Particle);
@@ -27,7 +28,10 @@ constexpr double Ly = L*ay/2;
 ofstream print_1("1st_layer.txt"), print_2("2nd_layer.txt"), print_3("3rd_layer.txt");
 ofstream print_energy("energy_3rd_layer");
 
-vector<Particle> substrate(4*L*L,0);					
+vector<Particle> substrate(3*L*L,0);					
+
+//Point3D part_coor = substrate[i].getPosition();
+//x = part_coor.x;
 
 mt19937_64 gen(13518);
 uniform_real_distribution<> random_phi(0.0, 2*PI);
@@ -37,10 +41,10 @@ uniform_real_distribution<> rn(0.0, 1.0);
 int main()
 {
 	vector<int> movable_substrate(L*L,0);					// periexei ta kinoumena swmatia tou 3ou layer.
-	vector<int> movable_nanowire(3*L,0);					// periexei ta kinoumena swmatia tou nanowire
+	vector<int> movable_nanowire;					// periexei ta kinoumena swmatia tou nanowire
 	vector< unordered_set<int> > neighborhood(N*N);			// periexei set apo indeces pou vriskontai sthn idia "geitonia"
 //----------------------------------------------------> Substrate Formation
-	
+	int counter=0;
 	for(int i=0; i<L*L; i++)
 	{
 		if( (i/L)%2==0 ) 									
@@ -67,6 +71,12 @@ int main()
 		print_1 << '<' << substrate[i].x << ',' << substrate[i].z << ',' << substrate[i].y <<'>'<<endl;
 		print_2 << '<' << substrate[i+L*L].x << ',' << substrate[i+L*L].z << ',' << substrate[i+L*L].y <<'>'<<endl;
 		print_3 << '<' << substrate[i+2*L*L].x << ',' << substrate[i+2*L*L].z << ',' << substrate[i+2*L*L].y <<'>'<<endl;
+//----------------------------------------------------> Placing nanonwire
+		if(i%L>10 && i%L<90 && i/L=20)
+		{
+			counter++;	
+		}
+		
 //---------------------------------------------------->
 		
 		movable_substrate[i] = i+2*L*L;					// contains indeces of the 3rd layer. thats the moving substrate.
@@ -83,6 +93,7 @@ int main()
 		neighborhood[y_set*N + x_set].insert(i+2*L*L);
 	}
 //-----------------------------------------------------> Calcuting Distance of two atoms, for every close neighboring atom
+	cout <<counter<<endl;
 	//vector<double> 
 	//for(int r=0; r<10; r++)
 	//{
