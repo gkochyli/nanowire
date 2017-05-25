@@ -372,3 +372,5 @@ void place_nanowire(vector<Particle>& nanowire, vector<int>& movable_nanowire)
 		//cout << nanowire[i].set << endl;
 	}
 }
+
+//made a comment at the end
