@@ -131,6 +131,10 @@ int main()
 				print_1 << '<' << particles[m].x << ',' << particles[m].z << ',' << particles[m].y <<'>'<<endl;
 				print_2 << '<' << particles[m+L*L].x << ',' << particles[m+L*L].z << ',' << particles[m+L*L].y <<'>'<<endl;
 				print_3 << '<' << particles[m+2*L*L].x << ',' << particles[m+2*L*L].z << ',' << particles[m+2*L*L].y <<'>'<<endl;
+			}
+			
+			for(int m=0; m<num_of_pb; m++)
+			{
 				print_nanowire << '<' << particles[m+3*L*L].x << ',' << particles[m+3*L*L].z << ',' << particles[m+3*L*L].y <<">,"<<endl;
 			}
 		}	
