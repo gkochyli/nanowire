@@ -17,7 +17,7 @@ double calculate_energy(int, Particle, vector<int>, vector< unordered_set<int> >
 bool check_Boltzmann(double);
 void place_substrate();
 void place_nanowire();
-
+void print2files(int r);
 constexpr int L=100;					//linear dimension of lattice
 constexpr int N=L/10;					//linear dimension of neighbors' vector.
 constexpr double R = 0.5;				// radius of substrate atom
@@ -32,11 +32,7 @@ constexpr double R_pb = 0.66;
 constexpr double ax_pb = 2*R_pb;
 constexpr int num_of_pb = 68; 		//number of Pb particles
 
-
 stringstream filename;
-ofstream print_1("./coordinates/1st_layer_"+filename.str()+".txt"), print_2("./coordinates/2nd_layer_"+filename.str()+".txt"), print_3("./coordinates/3rd_layer_"+filename.str()+".txt");
-ofstream print_nanowire("./coordinates/nanowire_coordinates_"+filename.str()+".txt");
-ofstream print_energy("energy_3rd_layer");
 
 vector<Particle> particles(3*L*L + num_of_pb);			// periexei ola ta particles tou susthmatos.
 vector<int> movable_particles(L*L + num_of_pb,0);		// periexei ta labels gia ta kinoumena swmatia tou 3ou layer kai to nanowire
@@ -49,12 +45,13 @@ uniform_real_distribution<> rn(0.0, 1.0);
 
 int main()
 {
-	int snap_at = 100;									// take snapshots every 100 steps.
+	int snap_at = 10;									// take snapshots every 100 steps.
 	int Runs = 1000;
 	
 //----------------------------------------------------> System Formation
 	place_substrate();	
 	place_nanowire();
+	print2files(0);
 //-----------------------------------------------------> Calcuting Distance of two atoms, for every close neighboring atom
 
 	for(int r=0; r<Runs; r++)
@@ -125,18 +122,7 @@ int main()
 		
 		if((r+1)%snap_at==0)
 		{
-			for(int m=0; m<L*L; m++)
-			{
-				filename << r << "steps";
-				print_1 << '<' << particles[m].x << ',' << particles[m].z << ',' << particles[m].y <<'>'<<endl;
-				print_2 << '<' << particles[m+L*L].x << ',' << particles[m+L*L].z << ',' << particles[m+L*L].y <<'>'<<endl;
-				print_3 << '<' << particles[m+2*L*L].x << ',' << particles[m+2*L*L].z << ',' << particles[m+2*L*L].y <<'>'<<endl;
-			}
-			
-			for(int m=0; m<num_of_pb; m++)
-			{
-				print_nanowire << '<' << particles[m+3*L*L].x << ',' << particles[m+3*L*L].z << ',' << particles[m+3*L*L].y <<">,"<<endl;
-			}
+			print2files(r);
 		}	
 	}
 }
@@ -333,5 +319,28 @@ void place_nanowire()
 		neighborhood[y_set*N+ x_set].insert(3*L*L+i);			// vazei sto swsto set to swmatidio.		
 	}
 }
+//------------------------------------------------------------
+void print2files(int r)
+{
+	if (r==0) 	filename << r << "steps";
+	else		filename << r+1 << "steps";
+	
+	ofstream print_1("./coordinates/1st_layer_"+filename.str()+".txt"), print_2("./coordinates/2nd_layer_"+filename.str()+".txt"), print_3("./coordinates/3rd_layer_"+filename.str()+".txt");
+	ofstream print_nanowire("./coordinates/nanowire_coordinates_"+filename.str()+".txt");
 
+	for(int m=0; m<L*L; m++)
+	{
+
+		print_1 << '<' << particles[m].x << ',' << particles[m].z << ',' << particles[m].y <<'>'<<endl;
+		print_2 << '<' << particles[m+L*L].x << ',' << particles[m+L*L].z << ',' << particles[m+L*L].y <<'>'<<endl;
+		print_3 << '<' << particles[m+2*L*L].x << ',' << particles[m+2*L*L].z << ',' << particles[m+2*L*L].y <<'>'<<endl;
+	}
+
+	for(int m=0; m<num_of_pb; m++)
+	{
+		print_nanowire << '<' << particles[m+3*L*L].x << ',' << particles[m+3*L*L].z << ',' << particles[m+3*L*L].y <<">,"<<endl;
+	}
+
+	filename.str(string());			//empty filename stream
+}
 //made a comment at the end
