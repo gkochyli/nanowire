@@ -15,7 +15,8 @@ void find_set_coordinates(int&, int&, Particle);
 void PBC(Particle&);
 double calculate_energy(int, Particle, vector<int>, vector< unordered_set<int> > &);
 bool check_Boltzmann(double);
-void place_nanowire(vector<Particle> &nanowire, vector<int> &movable_substrate);
+void place_substrate();
+void place_nanowire();
 
 constexpr int L=100;					//linear dimension of lattice
 constexpr int N=L/10;					//linear dimension of neighbors' vector.
@@ -33,12 +34,13 @@ constexpr int num_of_pb = 68; 		//number of Pb particles
 
 
 stringstream filename;
-ofstream print_1("1st_layer_"+filename.str()+".txt"), print_2("2nd_layer_"+filename.str()+".txt"), print_3("3rd_layer_"+filename.str()+".txt");
-ofstream print_nanowire("./pov/nanowire_coordinates_"+filename.str()+".txt");
+ofstream print_1("./coordinates/1st_layer_"+filename.str()+".txt"), print_2("./coordinates/2nd_layer_"+filename.str()+".txt"), print_3("./coordinates/3rd_layer_"+filename.str()+".txt");
+ofstream print_nanowire("./coordinates/nanowire_coordinates_"+filename.str()+".txt");
 ofstream print_energy("energy_3rd_layer");
 
-vector<Particle> substrate(3*L*L);					
-vector<Particle> nanowire(num_of_pb);
+vector<Particle> particles(3*L*L + num_of_pb);			// periexei ola ta particles tou susthmatos.
+vector<int> movable_particles(L*L + num_of_pb,0);		// periexei ta labels gia ta kinoumena swmatia tou 3ou layer kai to nanowire
+vector< unordered_set<int> > neighborhood(N*N);			// periexei set apo indeces pou vriskontai sthn idia "geitonia"
 
 mt19937_64 gen(13518);
 uniform_real_distribution<> random_phi(0.0, 2*PI);
@@ -49,71 +51,29 @@ int main()
 {
 	int snap_at = 100;									// take snapshots every 100 steps.
 	int Runs = 1000;
-	vector<int> movable_substrate(L*L,0);				// periexei ta labels gia ta kinoumena swmatia tou 3ou layer.
-	vector<int> movable_nanowire(num_of_pb,0);			// periexei ta labels gia ta swmatia tou nanowire.
-	vector< unordered_set<int> > neighborhood(N*N);			// periexei set apo indeces pou vriskontai sthn idia "geitonia"
-//----------------------------------------------------> Substrate Formation
 	
-	for(int i=0; i<L*L; i++)
-	{
-		if( (i/L)%2==0 ) 									
-		{ 
-			substrate[i].x = (i%L)*ax;
-			substrate[i+L*L].x = (i%L)*ax + R;
-			substrate[i+2*L*L].x = (i%L)*ax; 
-		}	
-		else 				
-		{ 
-			substrate[i].x = (i%L)*ax + R; 
-			substrate[i+L*L].x = (i%L)*ax; 
-			substrate[i+2*L*L].x = (i%L)*ax + R; 
-		}	
-			substrate[i].y = (i/L)*ay/2;
-			substrate[i+L*L].y = (i/L)*ay/2 + sqrt(3)/3*R;
-			substrate[i+2*L*L].y = (i/L)*ay/2;
-		
-			substrate[i].z = 0;
-			substrate[i+L*L].z = az/2;
-			substrate[i+2*L*L].z = az;
-		
-			substrate[i].type = 1;
-		
-//---------------------------------------------------->
-		
-		movable_substrate[i] = i+2*L*L;					// contains indeces of the 3rd layer. thats the moving substrate.
-		
-		int x_set, y_set;
-		find_set_coordinates(x_set, y_set, substrate[i]);
-
-		substrate[i].set = y_set*N+ x_set;
-		substrate[i+L*L].set = y_set*N+ x_set;
-		substrate[i+2*L*L].set = y_set*N+ x_set;
-		
-		neighborhood[y_set*N+ x_set].insert(i);			// vazei sto swsto set to swmatidio.
-		neighborhood[y_set*N + x_set].insert(i+L*L);
-		neighborhood[y_set*N + x_set].insert(i+2*L*L);
-	}
-	
-	place_nanowire(nanowire, movable_nanowire);
+//----------------------------------------------------> System Formation
+	place_substrate();	
+	place_nanowire();
 //-----------------------------------------------------> Calcuting Distance of two atoms, for every close neighboring atom
 
 	for(int r=0; r<Runs; r++)
 	{
-		cout << r+1 << endl;
-		for(int p=0; p<movable_substrate.size(); p++)		// Gia ka8e swmatio tou kinoumenou substrate kounaw to substrate
+		cout << "Run: " <<r+1 << endl;
+		for(int p=0; p<movable_particles.size(); p++)		// Gia ka8e kinoumeno swmatio
 		{			
-			//cout << p << ')' << endl;
-			int i = movable_substrate[p];					// i = label tou sugkekrimenou swmatidiou pou tsekarw
+			//cout <<"Checking particle: " << p << ')' << endl;
+			int i = movable_particles[p];					// i = label tou sugkekrimenou swmatidiou pou tsekarw
 
 			vector<int> closest_neighbors(9,0);
-			find_closest_neighbors(closest_neighbors, substrate[i]);	//	epistrefei mia lista mege8ous 9 me tous indeces twn geitonwn		
+			find_closest_neighbors(closest_neighbors, particles[i]);	//	epistrefei mia lista mege8ous 9 me tous indeces twn geitonwn		
 
-			double E_old = calculate_energy(i, substrate[i], closest_neighbors, neighborhood);
+			double E_old = calculate_energy(i, particles[i], closest_neighbors, neighborhood);
 	//-----------------------------------------------------> Trial Move
 			double phi = random_phi(gen);
 			double theta = random_theta(gen);
 
-			Particle trial_particle(substrate[i]);
+			Particle trial_particle(particles[i]);
 			trial_particle.x += 0.1*ax*cos(phi)*sin(theta);
 			trial_particle.y += 0.1*ax*sin(phi)*sin(theta);
 			trial_particle.z += 0.1*ax*cos(theta);	
@@ -122,36 +82,43 @@ int main()
 
 			find_closest_neighbors(closest_neighbors, trial_particle);
 
-
 			double E_new = calculate_energy(i, trial_particle, closest_neighbors, neighborhood);
 
 			double dE = E_new - E_old;
 
-			double dr = sqrt(pow(substrate[i].x-trial_particle.x,2)+pow(substrate[i].y-trial_particle.y,2)+pow(substrate[i].z-trial_particle.z,2));
+			//double dr = sqrt(pow(particles[i].x-trial_particle.x,2)+pow(particles[i].y-trial_particle.y,2)+pow(particles[i].z-trial_particle.z,2));
 
 			if(E_new<E_old || check_Boltzmann(dE))
 			{
 				//MOVE
 				int x_set, y_set;
-				find_set_coordinates(x_set, y_set, substrate[i]);
+				find_set_coordinates(x_set, y_set, particles[i]);
 
-				int i_set_old = y_set*N + x_set; //cout << i_set_old << '\t' << substrate[i].set<< endl<<endl;
+				int i_set_old = y_set*N + x_set; //cout << i_set_old << '\t' << particles[i].set<< endl<<endl;
 
-				substrate[i] = trial_particle;	//cout << "MOVED" <<endl;
+				particles[i] = trial_particle;	//cout << "MOVED" <<endl;
 
 				find_set_coordinates(x_set, y_set, trial_particle);
-				trial_particle.set = y_set*N + x_set;
+				//trial_particle.set = y_set*N + x_set;
 				int i_set_trial = y_set*N + x_set; //cout << i_set_trial << '\t' << trial_particle.set<< endl<<endl;
 
 				if(i_set_old!=i_set_trial)
 				{
 					auto result = neighborhood[i_set_old].erase(i);
-					if(result == 0) cout << "DEN DIAGRAFHKE" <<endl;
+					if(result == 0) 
+					{
+						cout << "DEN DIAGRAFHKE" <<endl;
+						return 1053;
+					}
 
 					auto result1 = neighborhood[i_set_trial].insert(i);
-					if(!result1.second) cout << "DEN MPHKE" <<endl;
+					if(!result1.second)
+					{
+						cout << "DEN MPHKE" <<endl;
+						return 4930;
+					}
 				}
-				else {cout << "DEN ALLA3A SET" << endl;}
+				//else {cout << "DEN ALLA3A SET" << endl;}
 			}
 			//cout << "-------------------------------------------------------------------" << endl;		
 		}	
@@ -161,76 +128,12 @@ int main()
 			for(int m=0; m<L*L; m++)
 			{
 				filename << r << "steps";
-				print_1 << '<' << substrate[m].x << ',' << substrate[m].z << ',' << substrate[m].y <<'>'<<endl;
-				print_2 << '<' << substrate[m+L*L].x << ',' << substrate[m+L*L].z << ',' << substrate[m+L*L].y <<'>'<<endl;
-				print_3 << '<' << substrate[m+2*L*L].x << ',' << substrate[m+2*L*L].z << ',' << substrate[m+2*L*L].y <<'>'<<endl;
+				print_1 << '<' << particles[m].x << ',' << particles[m].z << ',' << particles[m].y <<'>'<<endl;
+				print_2 << '<' << particles[m+L*L].x << ',' << particles[m+L*L].z << ',' << particles[m+L*L].y <<'>'<<endl;
+				print_3 << '<' << particles[m+2*L*L].x << ',' << particles[m+2*L*L].z << ',' << particles[m+2*L*L].y <<'>'<<endl;
+				print_nanowire << '<' << particles[m+3*L*L].x << ',' << particles[m+3*L*L].z << ',' << particles[m+3*L*L].y <<">,"<<endl;
 			}
-		}
-
-	//----------------------------------------------------> MOVING NANOWIRE
-		for(int p=0; p<movable_nanowire.size(); p++) 		// gia ka8e swmatio tou movable_nanowire kounaw to nanowire.
-		{
-			int i = movable_nanowire[p];					// i = label tou sugkekrimenou swmatidiou pou tsekarw
-
-			vector<int> closest_neighbors(9,0);
-			find_closest_neighbors(closest_neighbors, nanowire[i]);	//	epistrefei mia lista mege8ous 9 me tous indeces twn geitonwn
-
-			double E_old = calculate_energy(i, nanowire[i], closest_neighbors, neighborhood);
-
-	//-----------------------------------------------------> Trial Move
-			double phi = random_phi(gen);
-			double theta = random_theta(gen);
-
-			Particle trial_particle(nanowire[i]);
-			trial_particle.x += 0.1*ax*cos(phi)*sin(theta);
-			trial_particle.y += 0.1*ax*sin(phi)*sin(theta);
-			trial_particle.z += 0.1*ax*cos(theta);	
-
-			PBC(trial_particle);
-
-			find_closest_neighbors(closest_neighbors, trial_particle);
-
-
-			double E_new = calculate_energy(i, trial_particle, closest_neighbors, neighborhood);
-
-			double dE = E_new - E_old;
-
-			double dr = sqrt(pow(nanowire[i].x-trial_particle.x,2)+pow(nanowire[i].y-trial_particle.y,2)+pow(nanowire[i].z-trial_particle.z,2));
-
-			if(E_new<E_old || check_Boltzmann(dE))
-			{
-				//MOVE
-				int x_set, y_set;
-				find_set_coordinates(x_set, y_set, nanowire[i]);
-
-				int i_set_old = y_set*N + x_set; //cout << i_set_old << '\t' << nanowire[i].set<< endl<<endl;
-
-				nanowire[i] = trial_particle;	//cout << "MOVED" <<endl;
-
-				find_set_coordinates(x_set, y_set, trial_particle);
-				trial_particle.set = y_set*N + x_set;
-				int i_set_trial = y_set*N + x_set; //cout << i_set_trial << '\t' << trial_particle.set<< endl<<endl;
-
-				if(i_set_old!=i_set_trial)
-				{
-					auto result = neighborhood[i_set_old].erase(i);
-					if(result == 0) cout << "DEN DIAGRAFHKE" <<endl;
-
-					auto result1 = neighborhood[i_set_trial].insert(i);
-					if(!result1.second) cout << "DEN MPHKE" <<endl;
-				}
-				else {cout << "DEN ALLA3A SET" << endl;}
-			}		
-		}
-		
-		if((r+1)%snap_at==0)
-		{
-			for(int m=0; m<num_of_pb; m++)
-			{
-				filename << r << "steps";
-				print_nanowire << '<' << nanowire[m].x << ',' << nanowire[m].z << ',' << nanowire[m].y <<">,"<<endl;
-			}
-		}
+		}	
 	}
 }
 
@@ -288,7 +191,7 @@ double calculate_energy(int i, Particle particle_cur, vector<int> closest_neighb
 	double x_i, y_i, z_i;
 	x_i = particle_cur.x;
 	y_i = particle_cur.y;
-	z_i = particle_cur.z;							// ta upologizw gia na ta xrhsimopoihsw parakatw.
+	z_i = particle_cur.z;
 
 	for(int k=0; k<closest_neighbors.size(); k++)	// For every set_index of the list
 	{
@@ -297,9 +200,9 @@ double calculate_energy(int i, Particle particle_cur, vector<int> closest_neighb
 		for(int j:neighborhood[i_set])				// Gia ka8e swmatio (j) tou sugkekrimenou set.
 		{
 			double x_j, y_j, z_j;
-			x_j = substrate[j].x;
-			y_j = substrate[j].y;
-			z_j = substrate[j].z;
+			x_j = particles[j].x;
+			y_j = particles[j].y;
+			z_j = particles[j].z;
 
 			double dx = abs(x_i-x_j); if(dx>L/2) dx=L-dx;
 			double dy = abs(y_i-y_j); if(dy>L*ay/4) dy=L*ay/2-dy;
@@ -308,30 +211,39 @@ double calculate_energy(int i, Particle particle_cur, vector<int> closest_neighb
 			double r = sqrt(dx*dx + dy*dy + dz*dz);
 
 			double A_ab, j_ab, p_ab, q_ab;
-			if(particle_cur.type==1 && substrate[j].type==1)		// kai ta duo Cu
+			if(particle_cur.type == particles[j].type)		// kai ta duo Cu OR kai ta duo PB
 			{
-				A_ab = 0.0855;
-				j_ab = 1.224;
-				p_ab = 10.96;
-				q_ab = 2.278;
+				if(particle_cur.type==1)					// einai Cu
+				{
+					A_ab = 0.0855;
+					j_ab = 1.224;
+					p_ab = 10.96;
+					q_ab = 2.278;
+				}
+				else										// einai Pb
+				{
+					A_ab = 0.098;
+					j_ab = 0.914;
+					p_ab = 9.576;
+					q_ab = 3.648;
+				}
 			}
-			else if(particle_cur.type==2 && substrate[j].type==2)	// kai ta duo Pb
-			{
-				A_ab = 0.098;
-				j_ab = 0.914;
-				p_ab = 9.576;
-				q_ab = 3.648;
-			}
-			else													
+			else											// PREPEI NA TSEKARW if type!= 1 h 2
 			{
 				A_ab = sqrt(pow(0.0855,2) + pow(0.098,2));
 				j_ab = sqrt(pow(1.224,2) + pow(0.914,2));
 				p_ab = sqrt(pow(10.96,2) + pow(9.576,2));
 				q_ab = sqrt(pow(2.278,2) + pow(3.648,2));
 			}
+			
+			
 			if(i!=j && r<Rc)
 			{				
-				if(r<=0) cout << "SHIT" <<endl;
+				if(r<=0) 
+				{
+					cout << "SHIT" <<endl;
+					return 482;
+				}
 
 				sum_Er += A_ab*exp(-p_ab*(r-1));
 				sum_Eb += j_ab*exp(-2*q_ab*(r-1));	
@@ -356,20 +268,65 @@ bool check_Boltzmann(double dE)
 	else return false;
 }
 //-----------------------------------------------------------
-void place_nanowire(vector<Particle>& nanowire, vector<int>& movable_nanowire)
+void place_substrate()
+{
+	for(int i=0; i<L*L; i++)
+	{
+		if( (i/L)%2==0 ) 									
+		{ 
+			particles[i].x = (i%L)*ax;
+			particles[i+L*L].x = (i%L)*ax + R;
+			particles[i+2*L*L].x = (i%L)*ax; 
+		}	
+		else 				
+		{ 
+			particles[i].x = (i%L)*ax + R; 
+			particles[i+L*L].x = (i%L)*ax; 
+			particles[i+2*L*L].x = (i%L)*ax + R; 
+		}	
+			particles[i].y = (i/L)*ay/2;
+			particles[i+L*L].y = (i/L)*ay/2 + sqrt(3)/3*R;
+			particles[i+2*L*L].y = (i/L)*ay/2;
+		
+			particles[i].z = 0;
+			particles[i+L*L].z = az/2;
+			particles[i+2*L*L].z = az;
+		
+			particles[i].type = 1;
+			particles[i+L*L].type = 1;
+			particles[i+2*L*L].type = 1;
+		
+//---------------------------------------------------->
+		
+		movable_particles[i] = i+2*L*L;					// ta prwta L*L stoixeia tou vector periexoun ta labels twn kinoumenwn swmatidiwn tou 3ou layer.
+		
+		int x_set, y_set;
+		find_set_coordinates(x_set, y_set, particles[i]);	//ISWS EINAI LA8OS AUTO!!!!
+		neighborhood[y_set*N+ x_set].insert(i);			// vazei sto swsto set to swmatidio.
+		
+		find_set_coordinates(x_set, y_set, particles[i+L*L]);	//ISWS EINAI LA8OS AUTO!!!!
+		neighborhood[y_set*N + x_set].insert(i+L*L);
+		
+		find_set_coordinates(x_set, y_set, particles[i+2*L*L]);	//ISWS EINAI LA8OS AUTO!!!!
+		neighborhood[y_set*N + x_set].insert(i+2*L*L);		
+	}	
+}
+//-----------------------------------------------------------
+void place_nanowire()
 {
 	for(int i=0; i<num_of_pb; i++)
 	{
-		nanowire[i].x = i*ax_pb + 10.0;		// 3ekinaei apto x = 10
-		nanowire[i].y = 5*ay/2 + 4*Ly/10;	//topo8etw to nanowire sthn pempth seira tou 4 set
-		nanowire[i].z = az + R + R_pb;		//topo8etw to nanowire se uyos mia aktinas Cu kai mias aktinas Pb
-		nanowire[i].type = 2;
-		movable_nanowire[L*L+i] = 3*L*L+i;	//ta swmatidia tou nanowire 8a exoun labels 30000, 30001, 30002, ..., 30067 
+		particles[3*L*L+i].x = i*ax_pb + 10.0;		// 3ekinaei apto x = 10
+		particles[3*L*L+i].y = 5*ay/2 + 4*Ly/10;	//topo8etw to particles sthn pempth seira tou 4 set
+		particles[3*L*L+i].z = az + R + R_pb;		//topo8etw to nanowire se uyos mia aktinas Cu kai mias aktinas Pb
+		
+		particles[3*L*L+i].type = 2;
+		
+		movable_particles[L*L+i] = 3*L*L+i;	//ta swmatidia tou nanowire 8a exoun labels 30000, 30001, 30002, ..., 30067 
 				
 		int x_set, y_set;
-		find_set_coordinates(x_set, y_set, nanowire[i]);
-		nanowire[i].set = y_set*N + x_set;
-		//cout << nanowire[i].set << endl;
+		find_set_coordinates(x_set, y_set, particles[3*L*L+i]);
+		neighborhood[y_set*N+ x_set].insert(3*L*L+i);			// vazei sto swsto set to swmatidio.		
 	}
 }
 
