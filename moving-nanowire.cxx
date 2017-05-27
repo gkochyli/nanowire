@@ -49,7 +49,7 @@ uniform_real_distribution<> rn(0.0, 1.0);
 int main()
 {
 	int snap_at = 10;									// take snapshots every 100 steps.
-	int Runs = 1000;
+	int Runs = 200;
 	
 //----------------------------------------------------> System Formation
 	place_substrate();	
