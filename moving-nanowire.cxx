@@ -27,15 +27,19 @@ constexpr double ax=2*R, ay=2*sqrt(3)*R, az=2*sqrt(2.0/3)*2*R;	// distance betwe
 constexpr double Lx = L*ax;
 constexpr double Ly = L*ay/2;
 
-// Set Variables
-constexpr int N=25;					//linear dimension of neighbors' vector.
+// Neighborhood Variables
+constexpr int N=10;					//linear dimension of neighbors' vector.
 
 // Sta8eres gia Pb-nanowire
 constexpr double R_pb = 0.66;
 constexpr double ax_pb = 2*R_pb;
 constexpr int num_of_pb = 68; 		//number of Pb particles
 
+int snap_at = 10;					// take snapshots every 100 steps.
+int Runs = 1000;
+	
 stringstream filename;
+ofstream print_energy("energy.txt");
 
 vector<Particle> particles(3*L*L + num_of_pb);			// periexei ola ta particles tou susthmatos.
 vector<int> movable_particles(L*L + num_of_pb,0);		// periexei ta labels gia ta kinoumena swmatia tou 3ou layer kai to nanowire
@@ -48,20 +52,18 @@ uniform_real_distribution<> rn(0.0, 1.0);
 
 int main()
 {
-	int snap_at = 10;									// take snapshots every 100 steps.
-	int Runs = 200;
-	
 //----------------------------------------------------> System Formation
 	place_substrate();	
 	place_nanowire();
 	print2files(0);
 //-----------------------------------------------------> Calcuting Distance of two atoms, for every close neighboring atom
-
+	double sum_dE=0;
 	for(int r=0; r<Runs; r++)
 	{
 		cout << "Run: " <<r+1 << endl;
 		for(int p=0; p<movable_particles.size(); p++)		// Gia ka8e kinoumeno swmatio
 		{			
+			//sum_dE=0;
 			//cout <<"Checking particle: " << p << ')' << endl;
 			int i = movable_particles[p];					// i = label tou sugkekrimenou swmatidiou pou tsekarw
 
@@ -118,10 +120,11 @@ int main()
 						return 4930;
 					}
 				}
-				//else {cout << "DEN ALLA3A SET" << endl;}
+				sum_dE+=dE;
 			}
 			//cout << "-------------------------------------------------------------------" << endl;		
 		}	
+		print_energy << sum_dE <<endl;
 		
 		if((r+1)%snap_at==0)
 		{
@@ -129,8 +132,6 @@ int main()
 		}	
 	}
 }
-
-
 //-----------------------------------------------------> Functions
 
 void find_closest_neighbors(vector<int> &closest_neighbors, Particle s)  		// finds neighboring boxes in "sudoku box"
