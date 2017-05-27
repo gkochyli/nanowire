@@ -18,14 +18,17 @@ bool check_Boltzmann(double);
 void place_substrate();
 void place_nanowire();
 void print2files(int r);
+
 constexpr int L=100;					//linear dimension of lattice
-constexpr int N=L/10;					//linear dimension of neighbors' vector.
 constexpr double R = 0.5;				// radius of substrate atom
 constexpr double Rc=3*R + 0.000001;		// cutoff distance when checking for neighbors
 constexpr double PI = 3.14159265;
 constexpr double ax=2*R, ay=2*sqrt(3)*R, az=2*sqrt(2.0/3)*2*R;	// distance between the centers of two atoms only for x!!! when on y, ay is the distance between two atoms with equal (i/L)%2, respectively for az.
 constexpr double Lx = L*ax;
 constexpr double Ly = L*ay/2;
+
+// Set Variables
+constexpr int N=25;					//linear dimension of neighbors' vector.
 
 // Sta8eres gia Pb-nanowire
 constexpr double R_pb = 0.66;
@@ -161,8 +164,8 @@ void check_neighborhood_boundaries(int& x)					// PARAMETERS (x+ or x- or y+ or 
 //----------------------------------------------------
 void find_set_coordinates(int& x_set, int& y_set, Particle s)
 {
-	x_set = (int) s.x/(L/10);				 
-	y_set = (int) s.y/(10*ay/2);
+	x_set = (int) s.x/(Lx/N);				 
+	y_set = (int) s.y/(Ly/N);
 }
 //----------------------------------------------------
 void PBC(Particle& s)
