@@ -25,7 +25,7 @@ constexpr double Lx = L*ax;
 constexpr double Ly = L*ay/2;
 
 ofstream print_1("1st_layer.txt"), print_2("2nd_layer.txt"), print_3("3rd_layer.txt");
-ofstream print_energy("energy_3rd_layer");
+ofstream print_energy("energy.txt");
 
 vector<Particle> substrate(3*L*L);
 
@@ -82,24 +82,22 @@ int main()
 		neighborhood[y_set*N + x_set].insert(i+2*L*L);
 	}
 //-----------------------------------------------------> Calcuting Distance of two atoms, for every close neighboring atom
-	//vector<double> 
-	//for(int r=0; r<10; r++)
-	//{
-		for(int p=0; p<10; p++)//movable_substrate.size(); p++)		// Gia ka8e swmatio tou kinoumenou substrate
+	double sum_dE=0;
+	for(int r=0; r<2000; r++)
+	{
+		cout<< "Runs: " << r+1 << endl;
+		for(int p=0; p<movable_substrate.size(); p++)		// Gia ka8e swmatio tou kinoumenou substrate
 		{			
-			cout << p << ')' << endl;
+			//cout<< p << ')' << endl;
 			int i = movable_substrate[p];					// i = label tou sugkekrimenou swmatidiou pou tsekarw
 
 	//		cout << "Trexon Swmatidio: " << i << endl<<endl;
 	//		cout << "Syntetagmnenes Trexontos Swmatidiou\t" << x_i << '\t' << y_i << '\t' << z_i << endl<<endl;
 			vector<int> closest_neighbors(9,0);
 			find_closest_neighbors(closest_neighbors, substrate[i]);	//	epistrefei mia lista mege8ous 9 me tous indeces twn geitonwn
-			for(int k=0; k<closest_neighbors.size(); k++)
-			{
-				cout << closest_neighbors[k] << '\t'; 
-			}cout<<endl<<endl; 	 
+			 	 
 			double E_old = calculate_energy(i, substrate[i], closest_neighbors, neighborhood);
-			cout << E_old << '\t' << substrate[i].x << '\t' << substrate[i].y << '\t' << substrate[i].z <<endl;
+			//cout << E_old << '\t' << substrate[i].x << '\t' << substrate[i].y << '\t' << substrate[i].z <<endl;
 	//-----------------------------------------------------> Trial Move
 			double phi = random_phi(gen);
 			double theta = random_theta(gen);
@@ -111,18 +109,14 @@ int main()
 
 			PBC(trial_particle);
 
-			find_closest_neighbors(closest_neighbors, trial_particle);
-			for(int k=0; k<closest_neighbors.size(); k++)
-			{
-				cout << closest_neighbors[k] << '\t'; 
-			}cout<<endl<<endl; 		
+			find_closest_neighbors(closest_neighbors, trial_particle); 		
 
 			double E_new = calculate_energy(i, trial_particle, closest_neighbors, neighborhood);
-			cout << E_new << '\t' << trial_particle.x << '\t' << trial_particle.y << '\t' << trial_particle.z << '\t' << endl;
+			//cout<< E_new << '\t' << trial_particle.x << '\t' << trial_particle.y << '\t' << trial_particle.z << '\t' << endl;
 			double dE = E_new - E_old;
 
 			double dr = sqrt(pow(substrate[i].x-trial_particle.x,2)+pow(substrate[i].y-trial_particle.y,2)+pow(substrate[i].z-trial_particle.z,2));
-			cout << "dr = " << dr << endl;
+			//cout<< "dr = " << dr << endl;
 			
 			if(E_new<E_old || check_Boltzmann(dE))
 			{
@@ -130,13 +124,13 @@ int main()
 				int x_set, y_set;
 				find_set_coordinates(x_set, y_set, substrate[i]);
 
-				int i_set_old = y_set*N + x_set; cout << i_set_old << '\t' << substrate[i].set<< endl<<endl;
+				int i_set_old = y_set*N + x_set; //cout<< i_set_old << '\t' << substrate[i].set<< endl<<endl;
 
-				substrate[i] = trial_particle;	cout << "MOVED" <<endl;
+				substrate[i] = trial_particle;	//cout<< "MOVED" <<endl;
 
 				find_set_coordinates(x_set, y_set, trial_particle);
 				trial_particle.set = y_set*N + x_set;
-				int i_set_trial = y_set*N + x_set; cout << i_set_trial << '\t' << trial_particle.set<< endl<<endl;
+				int i_set_trial = y_set*N + x_set; //cout<< i_set_trial << '\t' << trial_particle.set<< endl<<endl;
 
 				if(i_set_old!=i_set_trial)
 				{
@@ -146,11 +140,13 @@ int main()
 					auto result1 = neighborhood[i_set_trial].insert(i);
 					if(!result1.second) cout << "DEN MPHKE" <<endl;
 				}
-				else {cout << "DEN ALLA3A SET" << endl;}
+				
+				sum_dE+=dE;
 			}
-			cout << "-------------------------------------------------------------------" << endl;		
+			//cout<< "-------------------------------------------------------------------" << endl;		
 		}
-	
+		print_energy<<sum_dE<<endl;
+	}
 }
 
 
@@ -247,7 +243,7 @@ bool check_Boltzmann(double dE)
 	double R = rn(gen);
 	if(R<w) 
 	{
-		cout << "Boltzmann me R = " << R << endl;
+		//cout<< "Boltzmann me R = " << R << endl;
 		return true;
 	}
 	else return false;
