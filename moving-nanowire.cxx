@@ -33,7 +33,7 @@ constexpr int N=10;					//linear dimension of neighbors' vector.
 // Sta8eres gia Pb-nanowire
 constexpr double R_pb = 0.66;
 constexpr double ax_pb = 2*R_pb;
-constexpr int num_of_pb = 68; 		//number of Pb particles
+constexpr int num_of_pb = 0; 		//number of Pb particles
 
 int snap_at = 10;					// take snapshots every 100 steps.
 int Runs = 1000;
