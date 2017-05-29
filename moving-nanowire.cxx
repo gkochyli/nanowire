@@ -14,7 +14,7 @@ void check_neighborhood_boundaries(int&);
 void find_set_coordinates(int&, int&, Particle);
 void PBC(Particle&);
 double calculate_energy(int, Particle, vector<int>, vector< unordered_set<int> > &);
-bool check_Boltzmann(double);
+bool check_Boltzmann(long double);
 void place_substrate();
 void place_nanowire();
 void print2files(int r);
@@ -35,7 +35,7 @@ constexpr double R_pb = 0.66;
 constexpr double ax_pb = 2*R_pb;
 constexpr int num_of_pb = 0; 		//number of Pb particles
 
-int snap_at = 10;					// take snapshots every 100 steps.
+int snap_at = 1001;					// take snapshots every 100 steps.
 int Runs = 1000;
 	
 stringstream filename;
@@ -57,10 +57,11 @@ int main()
 	place_nanowire();
 	print2files(0);
 //-----------------------------------------------------> Calcuting Distance of two atoms, for every close neighboring atom
-	double sum_dE=0;
+	double sum_dE=0;										//Gia sunolikh energeia
 	for(int r=0; r<Runs; r++)
 	{
-		cout << "Run: " <<r+1 << endl;
+		//double sum_dE=0;
+		cout << "Runs: " <<r+1 << endl;
 		for(int p=0; p<movable_particles.size(); p++)		// Gia ka8e kinoumeno swmatio
 		{			
 			//sum_dE=0;
@@ -70,7 +71,7 @@ int main()
 			vector<int> closest_neighbors(9,0);
 			find_closest_neighbors(closest_neighbors, particles[i]);	//	epistrefei mia lista mege8ous 9 me tous indeces twn geitonwn		
 
-			double E_old = calculate_energy(i, particles[i], closest_neighbors, neighborhood);
+			long double E_old = calculate_energy(i, particles[i], closest_neighbors, neighborhood);
 	//-----------------------------------------------------> Trial Move
 			double phi = random_phi(gen);
 			double theta = random_theta(gen);
@@ -84,9 +85,9 @@ int main()
 
 			find_closest_neighbors(closest_neighbors, trial_particle);
 
-			double E_new = calculate_energy(i, trial_particle, closest_neighbors, neighborhood);
+			long double E_new = calculate_energy(i, trial_particle, closest_neighbors, neighborhood);
 
-			double dE = E_new - E_old;
+			long double dE = E_new - E_old;
 
 			//double dr = sqrt(pow(particles[i].x-trial_particle.x,2)+pow(particles[i].y-trial_particle.y,2)+pow(particles[i].z-trial_particle.z,2));
 
@@ -107,24 +108,16 @@ int main()
 				if(i_set_old!=i_set_trial)
 				{
 					auto result = neighborhood[i_set_old].erase(i);
-					if(result == 0) 
-					{
-						cout << "DEN DIAGRAFHKE" <<endl;
-						return 1053;
-					}
+					if(result == 0) {cout << "DEN DIAGRAFHKE" <<endl; return 1053;}
 
 					auto result1 = neighborhood[i_set_trial].insert(i);
-					if(!result1.second)
-					{
-						cout << "DEN MPHKE" <<endl;
-						return 4930;
-					}
+					if(!result1.second) {cout << "DEN MPHKE" <<endl; return 4930;}
 				}
 				sum_dE+=dE;
 			}
 			//cout << "-------------------------------------------------------------------" << endl;		
 		}	
-		print_energy << sum_dE <<endl;
+		print_energy<<sum_dE<<endl;
 		
 		if((r+1)%snap_at==0)
 		{
@@ -229,8 +222,7 @@ double calculate_energy(int i, Particle particle_cur, vector<int> closest_neighb
 				p_ab = sqrt(pow(10.96,2) + pow(9.576,2));
 				q_ab = sqrt(pow(2.278,2) + pow(3.648,2));
 			}
-			
-			
+					
 			if(i!=j && r<Rc)
 			{				
 				if(r<=0) 
@@ -240,7 +232,7 @@ double calculate_energy(int i, Particle particle_cur, vector<int> closest_neighb
 				}
 
 				sum_Er += A_ab*exp(-p_ab*(r-1));
-				sum_Eb += j_ab*exp(-2*q_ab*(r-1));	
+				sum_Eb += j_ab*j_ab*exp(-2*q_ab*(r-1));	
 			}
 		}
 	}	
@@ -248,12 +240,13 @@ double calculate_energy(int i, Particle particle_cur, vector<int> closest_neighb
 	return E_i;
 }
 //-----------------------------------------------------------
-bool check_Boltzmann(double dE)
+bool check_Boltzmann(long double dE)
 {
-	double T = 0.05;			// in kT units
-	double w = exp(-dE/T);
+	long double T = 0.05;			// in kT units
+	long double m = dE/T;
+	long double w = exp(-m);
 	
-	double R = rn(gen);
+	long double R = rn(gen);
 	if(R<w) 
 	{
 		//cout << "Boltzmann me R = " << R << endl;
