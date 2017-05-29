@@ -6,6 +6,7 @@
 #include <iomanip>
 #include <fstream>
 #include <random>
+#include <iomanip>
 using namespace std;
 
 void find_closest_neighbors(vector<int> &, Particle);
@@ -13,7 +14,7 @@ void check_neighborhood_boundaries(int&);
 void find_set_coordinates(int&, int&, Particle);
 void PBC(Particle&);
 double calculate_energy(int, Particle, vector<int>, vector< unordered_set<int> > &);
-bool check_Boltzmann(double);
+bool check_Boltzmann(long double);
 
 constexpr int L=100;					//linear dimension of lattice
 constexpr int N=L/10;					//linear dimension of neighbors' vector.
@@ -82,9 +83,11 @@ int main()
 		neighborhood[y_set*N + x_set].insert(i+2*L*L);
 	}
 //-----------------------------------------------------> Calcuting Distance of two atoms, for every close neighboring atom
-	double sum_dE=0;
-	for(int r=0; r<2000; r++)
+	
+	double sum_dE=0;										//gia sunolikh energeia
+	for(int r=0; r<1000; r++)
 	{
+//		double sum_dE=0;									//gia diafora energeias ana time-step
 		cout<< "Runs: " << r+1 << endl;
 		for(int p=0; p<movable_substrate.size(); p++)		// Gia ka8e swmatio tou kinoumenou substrate
 		{			
@@ -96,7 +99,7 @@ int main()
 			vector<int> closest_neighbors(9,0);
 			find_closest_neighbors(closest_neighbors, substrate[i]);	//	epistrefei mia lista mege8ous 9 me tous indeces twn geitonwn
 			 	 
-			double E_old = calculate_energy(i, substrate[i], closest_neighbors, neighborhood);
+			long double E_old = calculate_energy(i, substrate[i], closest_neighbors, neighborhood);
 			//cout << E_old << '\t' << substrate[i].x << '\t' << substrate[i].y << '\t' << substrate[i].z <<endl;
 	//-----------------------------------------------------> Trial Move
 			double phi = random_phi(gen);
@@ -111,9 +114,9 @@ int main()
 
 			find_closest_neighbors(closest_neighbors, trial_particle); 		
 
-			double E_new = calculate_energy(i, trial_particle, closest_neighbors, neighborhood);
+			long double E_new = calculate_energy(i, trial_particle, closest_neighbors, neighborhood);
 			//cout<< E_new << '\t' << trial_particle.x << '\t' << trial_particle.y << '\t' << trial_particle.z << '\t' << endl;
-			double dE = E_new - E_old;
+			long double dE = E_new - E_old;
 
 			double dr = sqrt(pow(substrate[i].x-trial_particle.x,2)+pow(substrate[i].y-trial_particle.y,2)+pow(substrate[i].z-trial_particle.z,2));
 			//cout<< "dr = " << dr << endl;
@@ -235,12 +238,13 @@ double calculate_energy(int i, Particle particle_cur, vector<int> closest_neighb
 	return E_i;
 }
 //-----------------------------------------------------------
-bool check_Boltzmann(double dE)
+bool check_Boltzmann(long double dE)
 {
-	double T = 0.05;			// in kT units
-	double w = exp(-dE/T);
+	long double T = 0.05;			// in kT units
+	long double m = dE/T;
+	long double w = exp(-m);
 	
-	double R = rn(gen);
+	long double R = rn(gen);
 	if(R<w) 
 	{
 		//cout<< "Boltzmann me R = " << R << endl;
